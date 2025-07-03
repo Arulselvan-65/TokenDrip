@@ -1,28 +1,24 @@
-const {
-  time,
-  loadFixture,
-} = require("@nomicfoundation/hardhat-toolbox/network-helpers");
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
-const { expect } = require("chai");
+const {loadFixture, time } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
+const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
+const { ignition } = require("@nomicfoundation/hardhat-toolbox");
+const { assert } = require("chai");
 
 describe("Lock", function () {
-  // We define a fixture to reuse the same setup in every test.
-  // We use loadFixture to run this setup once, snapshot that state,
-  // and reset Hardhat Network to that snapshot in every test.
-  async function deployOneYearLockFixture() {
-    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-    const ONE_GWEI = 1_000_000_000;
 
-    const lockedAmount = ONE_GWEI;
-    const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
+  const tokenModule = buildModule("TokenModule", (m) =>{
+    const token = m.contract("TokenContract");
 
-    // Contracts are deployed using the first signer/account by default
-    const [owner, otherAccount] = await ethers.getSigners();
+    return {token};
+  });
 
-    const Lock = await ethers.getContractFactory("Lock");
-    const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+  const vestingModule = buildModule("VestingModule", (m) =>{
+    const contract = m.contract("TokenContract");
 
-    return { lock, unlockTime, lockedAmount, owner, otherAccount };
+    return {contract};
+  })
+
+  async function deployTokenFixture(){
+      return await ignition.deploy(tokenModule);
   }
 
   describe("Deployment", function () {
