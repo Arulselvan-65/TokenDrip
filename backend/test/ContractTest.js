@@ -221,5 +221,19 @@ describe("TokenDrip", function () {
           expect(schedules[0].totalTokens).to.equal(10n * DECIMALS);
       });
 
+      it("Should return schedule details of given address", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
+          const schedule = await vestingContract.getSchedule(addr1);
+          expect(schedule.isActive).to.equal(true);
+      });
+
+      it("Should revert getSchedule when no schedule exist", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
+          await expect(vestingContract.getSchedule(addr2))
+              .to.be.revertedWithCustomError(vestingContract, "NoActiveSchedule");
+      });
+
   });
 });

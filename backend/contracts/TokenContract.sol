@@ -12,4 +12,11 @@ contract TokenContract is ERC20, ERC20Burnable, Ownable {
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount * (10**18));
     }
+
+    function transfer(address to, uint256 value) public override virtual returns (bool) {
+        address owner = _msgSender();
+        _transfer(owner, to, value);
+        return true;
+    }
+
 }

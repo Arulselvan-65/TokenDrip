@@ -107,4 +107,9 @@ contract VestingContract is Ownable {
         }
         return schedules;
     }
+
+    function getSchedule(address addr) external view returns (VestingSchedule memory) {
+        require(vestingSchedules[addr].isActive, NoActiveSchedule());
+        return vestingSchedules[addr];
+    }
 }
