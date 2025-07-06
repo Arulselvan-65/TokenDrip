@@ -56,7 +56,7 @@ describe("TokenDrip", function () {
        expect(result[1]).to.equal(10n * DECIMALS);
      });
 
-     it("Should revert when creating schedule with same address", async function() {
+     it("Should revert createSchedule when creating schedule with same address", async function() {
        await tokenContract.connect(owner).mint(vestingContract.target, 20n);
        await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
        await expect(vestingContract.createSchedule(addr1, 10, 20n * DECIMALS))
@@ -64,25 +64,25 @@ describe("TokenDrip", function () {
            .withArgs(addr1);
      });
 
-     it("Should revert when creating schedule with zero address", async function() {
+     it("Should revert createSchedule when creating schedule with zero address", async function() {
          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
          await expect(vestingContract.createSchedule("0x0000000000000000000000000000000000000000", 10, 10n * DECIMALS))
              .to.be.revertedWithCustomError(vestingContract, "InvalidAddress");
      });
 
-     it("Should revert when total days zero", async function(){
+     it("Should revert createSchedule when total days zero", async function(){
         await tokenContract.connect(owner).mint(vestingContract.target, 20n);
         await expect(vestingContract.createSchedule(addr1, 0, 10n * DECIMALS))
             .to.be.revertedWithCustomError(vestingContract, "InvalidTotalDays");
      });
 
-      it("Should revert when total tokens zero", async function(){
+      it("Should revert createSchedule when total tokens zero", async function(){
           await tokenContract.connect(owner).mint(vestingContract.target, 20n);
           await expect(vestingContract.createSchedule(addr1, 10, 0))
               .to.be.revertedWithCustomError(vestingContract, "InvalidTotalTokens");
       });
 
-     it("Should revert when requested balance is higher then available balance", async function() {
+     it("Should revert createSchedule when requested balance is higher then available balance", async function() {
          await tokenContract.connect(owner).mint(vestingContract.target, 10n);
          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
          await expect(vestingContract.createSchedule(addr2, 10, 20n * DECIMALS))
@@ -90,7 +90,7 @@ describe("TokenDrip", function () {
              .withArgs(20n * DECIMALS, 10n * DECIMALS);
      });
 
-     it("Should emit event when schedule created", async function() {
+     it("Should emit ScheduleCreated when schedule created", async function() {
          await tokenContract.connect(owner).mint(vestingContract.target, 10n);
          const block = await ethers.provider.getBlock("latest");
          await expect(vestingContract.createSchedule(addr1, 10, 10n * DECIMALS))
@@ -105,7 +105,14 @@ describe("TokenDrip", function () {
          await expect(await tokenContract.balanceOf(addr1)).to.equal(1n * DECIMALS);
      });
 
-     it("Should revert when trying to claim on a same day", async function() {
+      it("Should emit TokenClaimed when tokens are claimed",  async function() {
+          await tokenContract.connect(owner).mint(vestingContract.target, 10n);
+          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
+          await expect(vestingContract.connect(addr1).claimTokens())
+              .to.emit(vestingContract, "TokenClaimed").withArgs(addr1, 1n * DECIMALS);
+      });
+
+     it("Should revert claimTokens when claiming on a same day", async function() {
          await tokenContract.connect(owner).mint(vestingContract.target, 10n);
          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
          await vestingContract.connect(addr1).claimTokens();
@@ -133,7 +140,7 @@ describe("TokenDrip", function () {
              .to.emit(vestingContract, "TokenClaimed").withArgs(addr1, 5n * DECIMALS);
      });
 
-     it("Should revert transactions after all the tokens are claimed", async function(){
+     it("Should revert claimTokens after all the tokens are claimed", async function(){
          await tokenContract.connect(owner).mint(vestingContract.target, 10n);
          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
          await vestingContract.connect(addr1).claimTokens();
@@ -144,7 +151,7 @@ describe("TokenDrip", function () {
              .to.be.revertedWithCustomError(vestingContract, "NoActiveSchedule");
      });
 
-      it("Should revert when trying to claim tokens after the scheduled days", async function(){
+      it("Should revert claimTokens when claiming tokens after the scheduled days", async function(){
           await tokenContract.connect(owner).mint(vestingContract.target, 10n);
           await vestingContract.createSchedule(addr1, 5, 10n * DECIMALS);
           await vestingContract.connect(addr1).claimTokens();
@@ -163,6 +170,56 @@ describe("TokenDrip", function () {
           await expect(vestingContract.connect(owner).claimRemainTokens())
               .to.emit(vestingContract, "RemainingTokensClaimed")
               .withArgs(10n * DECIMALS);
-      })
+      });
+
+      it("Should emit RemainingTokensClaimed after claiming remaining tokens", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 5, 10n * DECIMALS);
+          await ethers.provider.send('evm_increaseTime', [4 * 24 * 60 * 60]);
+          await ethers.provider.send('evm_mine');
+          await vestingContract.connect(addr1).claimTokens();
+          await expect(vestingContract.connect(owner).claimRemainTokens())
+              .to.emit(vestingContract, "RemainingTokensClaimed")
+              .withArgs(10n * DECIMALS);
+      });
+
+      it("Should revert claimRemainTokens for non-owner call", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 5, 20n * DECIMALS);
+          await ethers.provider.send('evm_increaseTime', [4 * 24 * 60 * 60]);
+          await ethers.provider.send('evm_mine');
+          await vestingContract.connect(addr1).claimTokens();
+          await expect(vestingContract.connect(addr1).claimRemainTokens()).to.be.reverted;
+      });
+
+      it("Should revert claimRemainTokens when no remaining tokens", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 5, 20n * DECIMALS);
+          await ethers.provider.send('evm_increaseTime', [4 * 24 * 60 * 60]);
+          await ethers.provider.send('evm_mine');
+          await vestingContract.connect(addr1).claimTokens();
+          await expect(vestingContract.connect(owner).claimRemainTokens())
+              .to.be.revertedWithCustomError(vestingContract, "NoTokensToClaim");
+      });
+
+      it("Should revert claimRemainTokens with active schedule", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 10, 20n * DECIMALS);
+          await ethers.provider.send('evm_increaseTime', [4 * 24 * 60 * 60]);
+          await ethers.provider.send('evm_mine');
+          await vestingContract.connect(addr1).claimTokens();
+          await expect(vestingContract.connect(owner).claimRemainTokens())
+              .to.be.revertedWithCustomError(vestingContract, "ActiveScheduleExists");
+      });
+
+      it("Should allow owner to view all schedules", async function () {
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
+          await vestingContract.createSchedule(addr2, 5, 5n * DECIMALS);
+          const schedules = await vestingContract.getAllSchedules();
+          expect(schedules.length).to.equal(2);
+          expect(schedules[0].totalTokens).to.equal(10n * DECIMALS);
+      });
+
   });
 });
