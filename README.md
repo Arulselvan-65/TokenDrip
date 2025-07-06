@@ -3,7 +3,7 @@
 ## Overview
 TokenDrip is a decentralized application (dApp) designed to manage token vesting schedules, allowing controlled token distribution over time. 
 ## Contracts
-- **TokenContract**: An ERC20 token contract with 18 decimals, inheriting `ERC20`, `ERC20Burnable`, and `Ownable`. It supports minting and transferring tokens.
+- **TokenContract**: An ERC20 token contract with 18 decimals, inheriting `ERC20`, and `Ownable`. It supports minting and transferring tokens.
 - **VestingContract**: Manages vesting schedules, allowing the owner to create schedules with a specified number of days and total tokens. It includes features like token claiming, schedule tracking, and admin withdrawal of remaining tokens, with custom errors and events for robustness.
 
 ## Features
