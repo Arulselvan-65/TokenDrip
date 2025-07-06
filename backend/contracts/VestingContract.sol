@@ -10,6 +10,7 @@ contract VestingContract is Ownable {
 
     IERC20 public token;
     uint public activeSchedules;
+    uint public scheduleCount;
 
     constructor(address tokenAddress) Ownable(msg.sender){
         token = IERC20(tokenAddress);
@@ -25,21 +26,28 @@ contract VestingContract is Ownable {
     }
 
     mapping(address => VestingSchedule) public vestingSchedules;
+    mapping(uint => address) public scheduleIds;
 
     event ScheduleCreated(address indexed to, uint time);
     event TokenClaimed(address indexed addr, uint amount);
+    event RemainingTokensClaimed(uint amount);
 
-    error InvalidAddress(address _addr);
+    error InvalidAddress();
+    error NoTokensToClaim();
+    error InvalidTotalDays();
+    error NoActiveSchedule();
+    error ScheduleCompleted();
+    error InvalidTotalTokens();
+    error TokenTransferFailed();
+    error ActiveScheduleExists();
     error ScheduleAlreadyExists(address _addr);
     error ExceedsTotalSupply(uint256 requested, uint256 total);
-    error NoActiveSchedule();
-    error NoTokensToClaim();
-    error TokenTransferFailed();
-    error ScheduleCompleted();
 
     function createSchedule(address addr, uint8 _totalDays, uint _totalTokens) external onlyOwner {
-        require(addr != address(0), InvalidAddress(msg.sender));
+        require(addr != address(0), InvalidAddress());
         require(!vestingSchedules[addr].isActive, ScheduleAlreadyExists(addr));
+        require(_totalDays > 0, InvalidTotalDays());
+        require(_totalTokens > 0, InvalidTotalTokens());
         require(token.balanceOf(address(this)) >= _totalTokens, ExceedsTotalSupply(_totalTokens, token.balanceOf(address(this))));
 
         vestingSchedules[addr] = VestingSchedule({
@@ -50,6 +58,7 @@ contract VestingContract is Ownable {
             claimed: 0,
             isActive: true
         });
+        scheduleIds[scheduleCount++] = addr;
         activeSchedules++;
 
         emit ScheduleCreated(addr, block.timestamp);
@@ -85,6 +94,17 @@ contract VestingContract is Ownable {
 
     function claimRemainTokens() external onlyOwner {
         require(token.balanceOf(address(this)) > 0, NoTokensToClaim());
-        require(token.transfer(msg.sender, token.balanceOf(address(this))), TokenTransferFailed());
+        require(activeSchedules == 0, ActiveScheduleExists());
+        uint remainingBalance = token.balanceOf(address(this));
+        require(token.transfer(msg.sender, remainingBalance), TokenTransferFailed());
+        emit RemainingTokensClaimed(remainingBalance);
+    }
+
+    function getAllSchedules() external view onlyOwner returns (VestingSchedule[] memory) {
+        VestingSchedule[] memory schedules = new VestingSchedule[](scheduleCount);
+        for (uint i = 0; i < scheduleCount; i++) {
+            schedules[i] = vestingSchedules[scheduleIds[i]];
+        }
+        return schedules;
     }
 }

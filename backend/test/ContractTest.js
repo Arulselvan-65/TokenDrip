@@ -64,6 +64,24 @@ describe("TokenDrip", function () {
            .withArgs(addr1);
      });
 
+     it("Should revert when creating schedule with zero address", async function() {
+         await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+         await expect(vestingContract.createSchedule("0x0000000000000000000000000000000000000000", 10, 10n * DECIMALS))
+             .to.be.revertedWithCustomError(vestingContract, "InvalidAddress");
+     });
+
+     it("Should revert when total days zero", async function(){
+        await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+        await expect(vestingContract.createSchedule(addr1, 0, 10n * DECIMALS))
+            .to.be.revertedWithCustomError(vestingContract, "InvalidTotalDays");
+     });
+
+      it("Should revert when total tokens zero", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await expect(vestingContract.createSchedule(addr1, 10, 0))
+              .to.be.revertedWithCustomError(vestingContract, "InvalidTotalTokens");
+      });
+
      it("Should revert when requested balance is higher then available balance", async function() {
          await tokenContract.connect(owner).mint(vestingContract.target, 10n);
          await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
@@ -135,5 +153,16 @@ describe("TokenDrip", function () {
           await expect(vestingContract.connect(addr1).claimTokens())
               .to.be.revertedWithCustomError(vestingContract, "ScheduleCompleted");
       });
+
+      it("Owner should claim remaining tokens", async function(){
+          await tokenContract.connect(owner).mint(vestingContract.target, 20n);
+          await vestingContract.createSchedule(addr1, 5, 10n * DECIMALS);
+          await ethers.provider.send('evm_increaseTime', [4 * 24 * 60 * 60]);
+          await ethers.provider.send('evm_mine');
+          await vestingContract.connect(addr1).claimTokens();
+          await expect(vestingContract.connect(owner).claimRemainTokens())
+              .to.emit(vestingContract, "RemainingTokensClaimed")
+              .withArgs(10n * DECIMALS);
+      })
   });
 });
