@@ -1,18 +1,17 @@
 "use client"
 import React from 'react';
 import { ConnectButtonC } from '../ConnectButton';
-import { Contract } from "@/contexts/ContractContext";
-import {useAccount} from "wagmi";
 import {ethers} from "ethers";
 
 export const Navbar = () => {
-  const { connector, address, isConnected } = useAccount();
+  //const { connector, address, isConnected } = useAccount();
+ // const { address } = Contract();
 
   const handleClick = async function () {
-    // @ts-ignore
-    const provider = new ethers.BrowserProvider(await connector?.getProvider());
+    // // @ts-ignore
+    // const provider = new ethers.BrowserProvider(await connector?.getProvider());
+//    console.log(address);
 
-    console.log(await provider.listAccounts());
 
   }
   return (

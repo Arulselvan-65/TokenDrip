@@ -1,7 +1,7 @@
 "use client";
 
-import { Navbar } from "@/components/layout/Navbar";
-import { Providers } from "@/utils/providers";
+import { Navbar } from "@/app/components/layout/Navbar";
+import { Providers } from "@/app/utils/providers";
 import { ToastContainer } from "react-toastify";
 import { Toaster } from "react-hot-toast";
 import "react-toastify/dist/ReactToastify.css";

@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { BarChart3, Activity, DollarSign, ShieldCheck } from 'lucide-react';
 
-import StatsCard from '@/components/dashboard/stats-card';
-import ActivityChart from '@/components/dashboard/activity-chart';
-import LoanTable from '@/components/dashboard/loan-table';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import StatsCard from '@/app/components/dashboard/stats-card';
+import ActivityChart from '@/app/components/dashboard/activity-chart';
+import LoanTable from '@/app/components/dashboard/loan-table';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/app/components/ui/card';
 
 export default function DashboardPage() {
   const [balance, setBalance] = useState('0');
