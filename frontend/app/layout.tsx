@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import "react-toastify/dist/ReactToastify.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import "./globals.css";
+import {ContractWrapper} from "@/app/contexts/ContractContext";
 
 interface NavbarProps {
     isSidebarOpen: boolean;
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="en">
         <body>
         <div className="bg-black text-white font-sans relative">
+            <ContractWrapper>
                 <Providers>
                         <div className="bg-gray-900 min-h-screen">
                             <Navbar/>
@@ -72,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         }}
                     />
                 </Providers>
+            </ContractWrapper>
         </div>
         </body>
         </html>
