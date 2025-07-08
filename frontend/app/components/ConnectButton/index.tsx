@@ -19,6 +19,7 @@ const formatAddress = (address: string) => {
 };
 
 export const ConnectButtonC = ({ displayType = 'full' }: ConnectButtonCProps) => {
+
     const Button = ({ onClick, text, variant = 'default', showStatus, isConnected }: ButtonProps) => {
         if (variant === 'network') {
             return (
@@ -65,14 +66,7 @@ export const ConnectButtonC = ({ displayType = 'full' }: ConnectButtonCProps) =>
     return (
         <div>
             <ConnectButton.Custom>
-                {({
-                    account,
-                    chain,
-                    openAccountModal,
-                    openConnectModal,
-                    openChainModal,
-                    mounted,
-                }) => {
+                {({ account, chain, openAccountModal, openConnectModal, openChainModal, mounted }) => {
                     const ready = mounted;
                     const connected = ready && account && chain;
 

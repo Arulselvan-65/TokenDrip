@@ -1,19 +1,10 @@
 "use client"
 import React from 'react';
 import { ConnectButtonC } from '../ConnectButton';
-import {ethers} from "ethers";
 
 export const Navbar = () => {
-  //const { connector, address, isConnected } = useAccount();
- // const { address } = Contract();
-
-  const handleClick = async function () {
-    // // @ts-ignore
-    // const provider = new ethers.BrowserProvider(await connector?.getProvider());
-//    console.log(address);
 
 
-  }
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 bg-gray-800 border-b border-gray-700 z-50">
       <div className="h-full px-4 flex items-center justify-between">
@@ -22,12 +13,6 @@ export const Navbar = () => {
             Token Drip
           </h1>
         </div>
-        <div>
-          <button onClick={handleClick}>
-            click me
-          </button>
-        </div>
-
         <div className="flex items-center gap-2">
           <div className="hidden sm:block">
             <ConnectButtonC />

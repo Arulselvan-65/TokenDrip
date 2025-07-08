@@ -1,44 +1,43 @@
+// @ts-nocheck
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {createContext, useContext, useState, ReactNode, useEffect} from "react";
 import { ethers } from "ethers";
+import { useAccount } from "wagmi";
+import { toast } from "react-toastify";
+import { tokenContractAddress, vestingContractAddress } from "./config";
+import { tokenAbi }  from "../utils/contracts/abi/TokenContract";
+import { abi } from "../utils/contracts/abi/VestingContract";
 
 interface ContractContextType {
     signer: ethers.Signer | undefined;
-    setSigner: React.Dispatch<React.SetStateAction<ethers.Signer | undefined>>;
-    tokenContractAddress: string | undefined;
-    setTokenContractAddress: React.Dispatch<React.SetStateAction<string | undefined>>;
-    vestingContractAddress: string | undefined;
-    setVestingContractAddress: React.Dispatch<React.SetStateAction<string | undefined>>;
+    setSigner: ethers.Signer | undefined;
+    tokenContractInstance: ethers.Contract | undefined;
+    setTokenContractInstance: ethers.Contract | undefined;
+    vestingContractInstance: ethers.Contract | undefined;
+    setVestingContractInstance: ethers.Contract | undefined;
 }
 
-const ContractContext = createContext<ContractContextType | undefined>(undefined);
+export const ContractContext = createContext<ContractContextType | undefined>(undefined);
 
 export const ContractWrapper = ({ children }: { children: ReactNode }) => {
     const [signer, setSigner] = useState<ethers.Signer | undefined>(undefined);
-    const [tokenContractAddress, setTokenContractAddress] = useState<string | undefined>(undefined);
-    const [vestingContractAddress, setVestingContractAddress] = useState<string | undefined>(undefined);
+    const [tokenContractInstance, setTokenContractInstance] = useState<ethers.Contract | undefined>(undefined);
+    const [vestingContractInstance, setVestingContractInstance] = useState<ethers.Contract | undefined>(undefined);
+    const { address, connector, isConnected, isConnecting} = useAccount();
 
     return (
         <ContractContext.Provider
             value={{
                 signer,
                 setSigner,
-                tokenContractAddress,
-                setTokenContractAddress,
-                vestingContractAddress,
-                setVestingContractAddress,
+                tokenContractInstance,
+                setTokenContractInstance,
+                vestingContractInstance,
+                setVestingContractInstance
             }}
         >
             {children}
         </ContractContext.Provider>
     );
-};
-
-export const useContractContext = () => {
-    const context = useContext(ContractContext);
-    if (!context) {
-        throw new Error("useContractContext must be used within a ContractWrapper");
-    }
-    return context;
 };

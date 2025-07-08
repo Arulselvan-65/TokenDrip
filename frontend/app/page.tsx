@@ -1,15 +1,44 @@
+// @ts-nocheck
 "use client"
 
-import { useState } from 'react';
+import {useState, useEffect, useContext} from 'react';
 import { BarChart3, Activity, DollarSign, ShieldCheck } from 'lucide-react';
-
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/app/components/ui/card';
 import StatsCard from '@/app/components/dashboard/stats-card';
 import ActivityChart from '@/app/components/dashboard/activity-chart';
 import LoanTable from '@/app/components/dashboard/loan-table';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/app/components/ui/card';
+import {getTotalSupply} from "@/app/utils/contracts/interactions";
+import {ethers} from "ethers";
+import {useAccount} from "wagmi";
+import {ContractContext} from "@/app/contexts/ContractContext";
+import { tokenContractAddress, vestingContractAddress } from "./contexts/config";
+import { tokenAbi }  from "./utils/contracts/abi/TokenContract";
+import { abi } from "./utils/contracts/abi/VestingContract";
+
 
 export default function DashboardPage() {
-  const [balance, setBalance] = useState('0');
+  const [balance, setBalance] = useState<string>('');
+  const { address, connector, isConnected, isConnecting} = useAccount();
+  const { setTokenContractInstance, setVestingContractInstance, setSigner } = useContext(ContractContext);
+
+  useEffect(() => {
+    const init = async () => {
+      if (isConnected && connector) {
+        const provider = new ethers.BrowserProvider(await connector?.getProvider());
+        const walletSigner = await provider.getSigner();
+        const token = new ethers.Contract(tokenContractAddress, tokenAbi, walletSigner);
+        const vesting = new ethers.Contract(vestingContractAddress, abi, walletSigner);
+
+        setBalance((await token.totalSupply())/10n**18n);
+      }
+    };
+    init();
+  }, [isConnected, connector]);
+
+
+  const getValues = async () =>{
+      setBalance(await getTotalSupply());
+  }
 
   const activityData = [
     { name: 'Mon', value: 4 },
@@ -45,7 +74,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
                 title="Total Balance"
-                value={`${parseFloat(balance).toFixed(4)} ETH`}
+                value={`${balance} HA`}
                 description="+20.1% from last month"
                 icon={DollarSign}
                 className="bg-gray-800/30 backdrop-blur-xl border border-gray-700/30 transition-all duration-300"

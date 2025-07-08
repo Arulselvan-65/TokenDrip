@@ -28,8 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="en">
         <body>
         <div className="bg-black text-white font-sans relative">
+            <Providers>
             <ContractWrapper>
-                <Providers>
                         <div className="bg-gray-900 min-h-screen">
                             <Navbar/>
                             <main className={"transition-all duration-300 ease-in-out ml-0"}>
@@ -38,14 +38,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </div>
 
                     <ToastContainer
-                        limit={3}
+                        limit={1}
                         position="top-right"
                         className="toastContainer"
                     />
                     <Toaster
                         position="top-right"
                         toastOptions={{
-                            duration: 3000,
+                            duration: 1000,
                             style: {
                                 background: "#1f2937",
                                 color: "#fff",
@@ -73,8 +73,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             },
                         }}
                     />
-                </Providers>
             </ContractWrapper>
+        </Providers>
         </div>
         </body>
         </html>
