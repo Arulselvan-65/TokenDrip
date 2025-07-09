@@ -24,7 +24,6 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
     const [signer, setSigner] = useState<ethers.Signer | undefined>(undefined);
     const [tokenContractInstance, setTokenContractInstance] = useState<ethers.Contract | undefined>(undefined);
     const [vestingContractInstance, setVestingContractInstance] = useState<ethers.Contract | undefined>(undefined);
-    const { address, connector, isConnected, isConnecting} = useAccount();
 
     return (
         <ContractContext.Provider

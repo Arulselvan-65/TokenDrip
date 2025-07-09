@@ -2,7 +2,7 @@
 "use client"
 
 import {useState, useEffect, useContext} from 'react';
-import { BarChart3, Activity, DollarSign, ShieldCheck } from 'lucide-react';
+import { Activity, DollarSign, ShieldCheck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/app/components/ui/card';
 import StatsCard from '@/app/components/dashboard/stats-card';
 import ActivityChart from '@/app/components/dashboard/activity-chart';
@@ -14,22 +14,48 @@ import {ContractContext} from "@/app/contexts/ContractContext";
 import { tokenContractAddress, vestingContractAddress } from "./contexts/config";
 import { tokenAbi }  from "./utils/contracts/abi/TokenContract";
 import { abi } from "./utils/contracts/abi/VestingContract";
+import { toast } from "react-toastify";
 
 
 export default function DashboardPage() {
-  const [balance, setBalance] = useState<string>('');
+  const [dashValues, setDashValues] = useState({
+    balance: 0,
+    activeScheduleCount: 0,
+    claimed: 0
+  })
   const { address, connector, isConnected, isConnecting} = useAccount();
   const { setTokenContractInstance, setVestingContractInstance, setSigner } = useContext(ContractContext);
 
   useEffect(() => {
     const init = async () => {
-      if (isConnected && connector) {
-        const provider = new ethers.BrowserProvider(await connector?.getProvider());
-        const walletSigner = await provider.getSigner();
-        const token = new ethers.Contract(tokenContractAddress, tokenAbi, walletSigner);
-        const vesting = new ethers.Contract(vestingContractAddress, abi, walletSigner);
+      if(!isConnected){
+        toast.error("Connect Wallet to continue");
+      }
+      try {
+        if (isConnected && connector.name) {
+          const provider = new ethers.BrowserProvider(await connector?.getProvider());
+          const walletSigner = await provider.getSigner();
+          const token = new ethers.Contract(tokenContractAddress, tokenAbi, walletSigner);
+          const vesting = new ethers.Contract(vestingContractAddress, abi, walletSigner);
 
-        setBalance((await token.totalSupply())/10n**18n);
+          const [totalSupply, contractBalance, activeSchedules] = await Promise.all([
+            token.recordBook(vesting.target),
+            token.balanceOf(vesting.target),
+            vesting.activeSchedules()
+          ]);
+
+          setDashValues({
+            balance: totalSupply,
+            activeScheduleCount: activeSchedules,
+            claimed: (totalSupply - (contractBalance / 10n ** 18n))
+          });
+
+          setTokenContractInstance(token);
+          setVestingContractInstance(vesting);
+          setSigner(walletSigner);
+        }
+      }catch (e){
+        console.log("error")
       }
     };
     init();
@@ -71,33 +97,23 @@ export default function DashboardPage() {
         </div>
 
         <div className="relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <StatsCard
-                title="Total Balance"
-                value={`${balance} HA`}
-                description="+20.1% from last month"
+                title="Total Tokens"
+                value={`${dashValues.balance} HA`}
                 icon={DollarSign}
                 className="bg-gray-800/30 backdrop-blur-xl border border-gray-700/30 transition-all duration-300"
             />
             <StatsCard
-                title="Active Loans"
-                value="24"
-                description="+12 since last week"
+                title="Active Schedules"
+                value={`${dashValues.activeScheduleCount}`}
                 icon={Activity}
                 className="bg-gray-800/30 backdrop-blur-xl border border-gray-700/30 transition-all duration-300"
             />
             <StatsCard
-                title="Total Value Locked"
-                value="156.4 ETH"
-                description="+4.3% from last week"
+                title="Total Tokens Claimed"
+                value={`${dashValues.claimed} HA`}
                 icon={ShieldCheck}
-                className="bg-gray-800/30 backdrop-blur-xl border border-gray-700/30 transition-all duration-300"
-            />
-            <StatsCard
-                title="Avg. Interest Rate"
-                value="5.2%"
-                description="-0.5% from last month"
-                icon={BarChart3}
                 className="bg-gray-800/30 backdrop-blur-xl border border-gray-700/30 transition-all duration-300"
             />
           </div>

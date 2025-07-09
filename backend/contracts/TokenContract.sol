@@ -8,7 +8,10 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract TokenContract is ERC20, Ownable {
     constructor(address initialOwner) ERC20("Lock", "HA") Ownable(initialOwner){}
 
+    mapping(address => uint) public recordBook;
+
     function mint(address to, uint256 amount) public onlyOwner {
+        recordBook[to] += amount;
         _mint(to, amount * (10**18));
     }
 
