@@ -6,8 +6,7 @@ import { Activity, DollarSign, ShieldCheck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/app/components/ui/card';
 import StatsCard from '@/app/components/dashboard/stats-card';
 import ActivityChart from '@/app/components/dashboard/activity-chart';
-import LoanTable from '@/app/components/dashboard/loan-table';
-import {getTotalSupply} from "@/app/utils/contracts/interactions";
+import ScheduleListTable from '@/app/components/dashboard/schedule-list-table';
 import {ethers} from "ethers";
 import {useAccount} from "wagmi";
 import {ContractContext} from "@/app/contexts/ContractContext";
@@ -15,6 +14,7 @@ import { tokenContractAddress, vestingContractAddress } from "./contexts/config"
 import { tokenAbi }  from "./utils/contracts/abi/TokenContract";
 import { abi } from "./utils/contracts/abi/VestingContract";
 import { toast } from "react-toastify";
+import {Schedule} from "@/app/components/types/interfaces";
 
 
 export default function DashboardPage() {
@@ -34,6 +34,7 @@ export default function DashboardPage() {
     { name: 'Sun', value: 0 }
   ]);
 
+  const [scheduleList, setScheduleList] = useState([]);
   const [latestEvents, setLatestEvents] = useState([]);
   const { address, connector, isConnected, isConnecting} = useAccount();
   const { setTokenContractInstance, setVestingContractInstance, setSigner } = useContext(ContractContext);
@@ -67,6 +68,7 @@ export default function DashboardPage() {
           setVestingContractInstance(vesting);
           setSigner(walletSigner);
           fetchLatestFourEvents(vesting, provider);
+          fetchSchedules(vesting, provider);
         }
       }catch (e){
         console.log("error")
@@ -125,22 +127,37 @@ export default function DashboardPage() {
     }
   }
 
-  const getValues = async () =>{
-      setBalance(await getTotalSupply());
+  async function fetchSchedules(vestingContract, provider) {
+    try {
+      let scheduleList: Schedule[] = [];
+      const schedulesCount = await vestingContract.scheduleCount();
+      for (let i = 0; i < schedulesCount; i++) {
+        let addr = await vestingContract.scheduleIds(i);
+
+        let scheduleDetails = await vestingContract.getSchedule(addr);
+        let totalTokens = Number(scheduleDetails[1]);
+        let startTime = new Date(Number(scheduleDetails[2]) * 1000).toLocaleDateString('en-IN');
+        let endTime = new Date(Number(scheduleDetails[3]) * 1000).toLocaleDateString('en-IN');
+        let status = scheduleDetails[5];
+
+        let schedule: Schedule = {
+          id: i,
+          address: addr,
+          totalTokens: totalTokens,
+          startTime: startTime,
+          endTime: endTime,
+          status: status
+        }
+        console.log(schedule)
+        scheduleList.push(schedule);
+      }
+      setScheduleList(scheduleList);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      throw error;
+    }
   }
 
-  const mockLoans = Array.from({ length: 5 }, (_, i) => ({
-    id: i + 1,
-    borrower: '0x1234...5678',
-    collection: 'Bored Apes',
-    amount: '2.5 ETH',
-    interest: '5.2%',
-    status: 'Active'
-  }));
-
-  const handleRefresh = () => {
-    console.log('Refreshing data...');
-  };
 
   return (
       <div className="min-h-screen bg-gray-900 relative overflow-hidden">
@@ -208,7 +225,7 @@ export default function DashboardPage() {
                                 event.type === 'TokenClaimed' ? 'Token Claimed' : 'Remaining Tokens Claimed'}
                           </h4>
                           <p className="text-xs text-gray-400">
-                            {new Date(Number(event.args?.time || event.args?.[2] || 0) * 1000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} on {new Date(Number(event.args?.time || event.args?.[2] || 0) * 1000).toLocaleDateString()}
+                            {new Date(Number(event.args?.time || event.args?.[2] || 0) * 1000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} on {new Date(Number(event.args?.time || event.args?.[2] || 0) * 1000).toLocaleDateString('en-IN')}
                           </p>
                         </div>
                         <div className="flex-1 text-xs ml-4 text-gray-400">
@@ -227,15 +244,12 @@ export default function DashboardPage() {
 
           <Card className="bg-gray-800/30 backdrop-blur-xl border border-gray-700/30 transition-all duration-300 mb-16">
             <CardHeader>
-              <CardTitle className="text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
-                Active Loans
+              <CardTitle>
+                Schedules
               </CardTitle>
-              <CardDescription className="text-gray-400">
-                Manage your current loan positions
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <LoanTable loans={mockLoans} onRefresh={handleRefresh} />
+              <ScheduleListTable schedules={scheduleList}/>
             </CardContent>
           </Card>
 

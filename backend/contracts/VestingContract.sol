@@ -75,9 +75,9 @@ contract VestingContract is Ownable {
             activeSchedules--;
             vestingSchedule.isActive = false;
         }
-        require(token.transfer(msg.sender, claimable), TokenTransferFailed());
+        require(token.transfer(msg.sender, claimable * (10**18)), TokenTransferFailed());
 
-        emit TokenClaimed(address(this), msg.sender, claimable, block.timestamp);
+        emit TokenClaimed(address(this), msg.sender, claimable * (10**18), block.timestamp);
     }
 
     function calculateVestedAmount(address _addr) internal view returns(uint){
@@ -96,8 +96,8 @@ contract VestingContract is Ownable {
         require(token.balanceOf(address(this)) > 0, NoTokensToClaim());
         require(activeSchedules == 0, ActiveScheduleExists());
         uint remainingBalance = token.balanceOf(address(this));
-        require(token.transfer(msg.sender, remainingBalance), TokenTransferFailed());
-        emit RemainingTokensClaimed(address(this), remainingBalance, block.timestamp);
+        require(token.transfer(msg.sender, remainingBalance  * (10**18)), TokenTransferFailed());
+        emit RemainingTokensClaimed(address(this), remainingBalance  * (10**18), block.timestamp);
     }
 
     function getAllSchedules() external view onlyOwner returns (VestingSchedule[] memory) {
