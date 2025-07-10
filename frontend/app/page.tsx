@@ -18,11 +18,22 @@ import { toast } from "react-toastify";
 
 
 export default function DashboardPage() {
+  const DECIMALS = 10n ** 18n;
   const [dashValues, setDashValues] = useState({
     balance: 0,
     activeScheduleCount: 0,
     claimed: 0
   })
+  const [activityData, setActivityData] = useState([
+    { name: 'Mon', value: 0 },
+    { name: 'Tue', value: 0 },
+    { name: 'Wed', value: 0 },
+    { name: 'Thu', value: 0 },
+    { name: 'Fri', value: 0 },
+    { name: 'Sat', value: 0 },
+    { name: 'Sun', value: 0 }
+  ]);
+
   const [latestEvents, setLatestEvents] = useState([]);
   const { address, connector, isConnected, isConnecting} = useAccount();
   const { setTokenContractInstance, setVestingContractInstance, setSigner } = useContext(ContractContext);
@@ -45,6 +56,7 @@ export default function DashboardPage() {
             vesting.activeSchedules()
           ]);
 
+          console.log(contractBalance)
           setDashValues({
             balance: totalSupply,
             activeScheduleCount: activeSchedules,
@@ -65,13 +77,12 @@ export default function DashboardPage() {
 
   async function fetchLatestFourEvents(vestingContract, provider) {
     try {
-
       const latestBlock = await provider.getBlockNumber();
-      const startBlock = latestBlock - 1000000;
+      const startBlock = 0;
 
-      const scheduleCreatedFilter = vestingContract.filters.ScheduleCreated();
-      const tokenClaimedFilter = vestingContract.filters.TokenClaimed();
-      const remainingTokensClaimedFilter = vestingContract.filters.RemainingTokensClaimed();
+      const scheduleCreatedFilter = vestingContract.filters.ScheduleCreated(vestingContract.address);
+      const tokenClaimedFilter = vestingContract.filters.TokenClaimed(vestingContract.address);
+      const remainingTokensClaimedFilter = vestingContract.filters.RemainingTokensClaimed(vestingContract.address);
 
       const [scheduleCreatedEvents, tokenClaimedEvents, remainingTokensClaimedEvents] = await Promise.all([
         vestingContract.queryFilter(scheduleCreatedFilter, startBlock, latestBlock),
@@ -79,24 +90,35 @@ export default function DashboardPage() {
         vestingContract.queryFilter(remainingTokensClaimedFilter, startBlock, latestBlock)
       ]);
 
-      // need to add timestamp for claim tokens
+      const allEvents = [
+        ...scheduleCreatedEvents.map(e => ({ type: 'ScheduleCreated', ...e })),
+        ...tokenClaimedEvents.map(e => ({ type: 'TokenClaimed', ...e })),
+        ...remainingTokensClaimedEvents.map(e => ({ type: 'RemainingTokensClaimed', ...e }))
+      ].sort((a, b) => b.blockNumber - a.blockNumber || b.transactionIndex - a.transactionIndex);
 
-      const currentDate = new Date();
-      const timestamp = currentDate.getTime();
-      const tranTimestamp = Number(scheduleCreatedEvents[1].args[1]) * 1000;
+      const latestFourEvents = allEvents.slice(0, 4);
+      setLatestEvents(latestFourEvents);
 
-      const val = Math.abs(timestamp - tranTimestamp);
-      const hours = Math.floor(val / 3600000);
-      const minutes = Math.floor((val % 3600000) / 60000);
+      // Token Claimed record
+      const activityData = [
+        { name: 'Mon', value: 0 },
+        { name: 'Tue', value: 0 },
+        { name: 'Wed', value: 0 },
+        { name: 'Thu', value: 0 },
+        { name: 'Fri', value: 0 },
+        { name: 'Sat', value: 0 },
+        { name: 'Sun', value: 0 }
+      ];
 
-      if (hours > 0) {
-        console.log(`${hours} hours and ${minutes} minutes`);
-      } else {
-        console.log(`${minutes} minutes`);
-      }
-
-      console.log(scheduleCreatedEvents);
-      //setLatestEvents(latestFourEvents);
+      tokenClaimedEvents.forEach(event => {
+        const eventTime = new Date(Number(event.args?.time) * 1000);
+        const eventDay = eventTime.toLocaleString('en-IN', { weekday: 'short' });
+        const dayIndex = activityData.findIndex(day => day.name === eventDay);
+        if (dayIndex !== -1) {
+          activityData[dayIndex].value += Number(event.args?.amount/DECIMALS || 0);
+        }
+      });
+      setActivityData(activityData);
     } catch (error) {
       console.error("Error fetching events:", error);
       throw error;
@@ -106,16 +128,6 @@ export default function DashboardPage() {
   const getValues = async () =>{
       setBalance(await getTotalSupply());
   }
-
-  const activityData = [
-    { name: 'Mon', value: 4 },
-    { name: 'Tue', value: 7 },
-    { name: 'Wed', value: 5 },
-    { name: 'Thu', value: 8 },
-    { name: 'Fri', value: 12 },
-    { name: 'Sat', value: 9 },
-    { name: 'Sun', value: 6 },
-  ];
 
   const mockLoans = Array.from({ length: 5 }, (_, i) => ({
     id: i + 1,
@@ -166,7 +178,7 @@ export default function DashboardPage() {
                   Weekly Activity
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Number of new loans per day
+                  Number of tokens claimed per day
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -190,16 +202,21 @@ export default function DashboardPage() {
                         <div className="h-9 w-9 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 flex items-center justify-center mr-4">
                           <Activity className="h-5 w-5 text-white" />
                         </div>
-                        <div>
+                        <div className="w-44">
                           <h4 className="text-sm font-medium text-white">
-                            {event.name}
+                            {event.type === 'ScheduleCreated' ? 'New Schedule Created' :
+                                event.type === 'TokenClaimed' ? 'Token Claimed' : 'Remaining Tokens Claimed'}
                           </h4>
                           <p className="text-xs text-gray-400">
-                            {event.time}
+                            {new Date(Number(event.args?.time || event.args?.[2] || 0) * 1000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} on {new Date(Number(event.args?.time || event.args?.[2] || 0) * 1000).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="ml-auto text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
-                          {event.amount}
+                        <div className="flex-1 text-xs ml-4 text-gray-400">
+                          #{event.args?.to || event.args?.addr || 'N/A'}
+                        </div>
+                        <div className="flex-1 text-right text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
+                          {event.type === 'TokenClaimed' ? `${event.args?.amount/DECIMALS || 0} Tokens` :
+                              event.type === 'RemainingTokensClaimed' ? `${event.args?.amount/DECIMALS || 0} Tokens` : 'N/A'}
                         </div>
                       </div>
                   ))}
