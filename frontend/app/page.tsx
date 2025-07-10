@@ -23,6 +23,7 @@ export default function DashboardPage() {
     activeScheduleCount: 0,
     claimed: 0
   })
+  const [latestEvents, setLatestEvents] = useState([]);
   const { address, connector, isConnected, isConnecting} = useAccount();
   const { setTokenContractInstance, setVestingContractInstance, setSigner } = useContext(ContractContext);
 
@@ -53,6 +54,7 @@ export default function DashboardPage() {
           setTokenContractInstance(token);
           setVestingContractInstance(vesting);
           setSigner(walletSigner);
+          fetchLatestFourEvents(vesting, provider);
         }
       }catch (e){
         console.log("error")
@@ -61,6 +63,45 @@ export default function DashboardPage() {
     init();
   }, [isConnected, connector]);
 
+  async function fetchLatestFourEvents(vestingContract, provider) {
+    try {
+
+      const latestBlock = await provider.getBlockNumber();
+      const startBlock = latestBlock - 1000000;
+
+      const scheduleCreatedFilter = vestingContract.filters.ScheduleCreated();
+      const tokenClaimedFilter = vestingContract.filters.TokenClaimed();
+      const remainingTokensClaimedFilter = vestingContract.filters.RemainingTokensClaimed();
+
+      const [scheduleCreatedEvents, tokenClaimedEvents, remainingTokensClaimedEvents] = await Promise.all([
+        vestingContract.queryFilter(scheduleCreatedFilter, startBlock, latestBlock),
+        vestingContract.queryFilter(tokenClaimedFilter, startBlock, latestBlock),
+        vestingContract.queryFilter(remainingTokensClaimedFilter, startBlock, latestBlock)
+      ]);
+
+      // need to add timestamp for claim tokens
+
+      const currentDate = new Date();
+      const timestamp = currentDate.getTime();
+      const tranTimestamp = Number(scheduleCreatedEvents[1].args[1]) * 1000;
+
+      const val = Math.abs(timestamp - tranTimestamp);
+      const hours = Math.floor(val / 3600000);
+      const minutes = Math.floor((val % 3600000) / 60000);
+
+      if (hours > 0) {
+        console.log(`${hours} hours and ${minutes} minutes`);
+      } else {
+        console.log(`${minutes} minutes`);
+      }
+
+      console.log(scheduleCreatedEvents);
+      //setLatestEvents(latestFourEvents);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      throw error;
+    }
+  }
 
   const getValues = async () =>{
       setBalance(await getTotalSupply());
@@ -144,21 +185,21 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex items-center p-4 bg-gray-800/40 rounded-lg border border-gray-700/30">
+                  {latestEvents.map((event, index) => (
+                      <div key={index} className="flex items-center p-4 bg-gray-800/40 rounded-lg border border-gray-700/30">
                         <div className="h-9 w-9 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 flex items-center justify-center mr-4">
                           <Activity className="h-5 w-5 text-white" />
                         </div>
                         <div>
                           <h4 className="text-sm font-medium text-white">
-                            New loan created #{i}
+                            {event.name}
                           </h4>
                           <p className="text-xs text-gray-400">
-                            2 minutes ago
+                            {event.time}
                           </p>
                         </div>
                         <div className="ml-auto text-sm font-medium text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500">
-                          1.5 ETH
+                          {event.amount}
                         </div>
                       </div>
                   ))}

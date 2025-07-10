@@ -95,7 +95,7 @@ describe("TokenDrip", function () {
          const block = await ethers.provider.getBlock("latest");
          await expect(vestingContract.createSchedule(addr1, 10, 10n * DECIMALS))
              .to.emit(vestingContract, "ScheduleCreated")
-             .withArgs(addr1, BigInt(block.timestamp + 1));
+             .withArgs(vestingContract.target, addr1, BigInt(block.timestamp + 1));
      });
 
      it("Should claim tokens after creation",  async function() {
@@ -108,8 +108,10 @@ describe("TokenDrip", function () {
       it("Should emit TokenClaimed when tokens are claimed",  async function() {
           await tokenContract.connect(owner).mint(vestingContract.target, 10n);
           await vestingContract.createSchedule(addr1, 10, 10n * DECIMALS);
+          const block = await ethers.provider.getBlock("latest");
           await expect(vestingContract.connect(addr1).claimTokens())
-              .to.emit(vestingContract, "TokenClaimed").withArgs(addr1, 1n * DECIMALS);
+              .to.emit(vestingContract, "TokenClaimed")
+              .withArgs(vestingContract.target, addr1, 1n * DECIMALS, BigInt(block.timestamp + 1));
       });
 
      it("Should revert claimTokens when claiming on a same day", async function() {
@@ -126,8 +128,10 @@ describe("TokenDrip", function () {
          await vestingContract.connect(addr1).claimTokens();
          await ethers.provider.send('evm_increaseTime', [1 * 24 * 60 * 60]);
          await ethers.provider.send('evm_mine');
+         const block = await ethers.provider.getBlock("latest");
          await expect(vestingContract.connect(addr1).claimTokens())
-             .to.emit(vestingContract, "TokenClaimed").withArgs(addr1, 1n * DECIMALS);
+             .to.emit(vestingContract, "TokenClaimed")
+             .withArgs(vestingContract.target, addr1, 1n * DECIMALS, BigInt(block.timestamp + 1));
      });
 
      it("Should claim the elapsed days tokens", async function() {
@@ -136,8 +140,10 @@ describe("TokenDrip", function () {
          await vestingContract.connect(addr1).claimTokens();
          await ethers.provider.send('evm_increaseTime', [5 * 24 * 60 * 60]);
          await ethers.provider.send('evm_mine');
+         const block = await ethers.provider.getBlock("latest");
          await expect(vestingContract.connect(addr1).claimTokens())
-             .to.emit(vestingContract, "TokenClaimed").withArgs(addr1, 5n * DECIMALS);
+             .to.emit(vestingContract, "TokenClaimed")
+             .withArgs(vestingContract.target, addr1, 5n * DECIMALS, BigInt(block.timestamp + 1));
      });
 
      it("Should revert claimTokens after all the tokens are claimed", async function(){
@@ -167,9 +173,10 @@ describe("TokenDrip", function () {
           await ethers.provider.send('evm_increaseTime', [4 * 24 * 60 * 60]);
           await ethers.provider.send('evm_mine');
           await vestingContract.connect(addr1).claimTokens();
+          const block = await ethers.provider.getBlock("latest");
           await expect(vestingContract.connect(owner).claimRemainTokens())
               .to.emit(vestingContract, "RemainingTokensClaimed")
-              .withArgs(10n * DECIMALS);
+              .withArgs(vestingContract.target, 10n * DECIMALS,block.timestamp + 1);
       });
 
       it("Should emit RemainingTokensClaimed after claiming remaining tokens", async function(){
@@ -178,9 +185,10 @@ describe("TokenDrip", function () {
           await ethers.provider.send('evm_increaseTime', [4 * 24 * 60 * 60]);
           await ethers.provider.send('evm_mine');
           await vestingContract.connect(addr1).claimTokens();
+          const block = await ethers.provider.getBlock("latest");
           await expect(vestingContract.connect(owner).claimRemainTokens())
               .to.emit(vestingContract, "RemainingTokensClaimed")
-              .withArgs(10n * DECIMALS);
+              .withArgs(vestingContract.target, 10n * DECIMALS,  BigInt(block.timestamp + 1));
       });
 
       it("Should revert claimRemainTokens for non-owner call", async function(){

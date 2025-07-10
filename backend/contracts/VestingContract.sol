@@ -28,9 +28,9 @@ contract VestingContract is Ownable {
     mapping(address => VestingSchedule) public vestingSchedules;
     mapping(uint => address) public scheduleIds;
 
-    event ScheduleCreated(address indexed to, uint time);
-    event TokenClaimed(address indexed addr, uint amount);
-    event RemainingTokensClaimed(uint amount);
+    event ScheduleCreated(address indexed from, address indexed to, uint time);
+    event TokenClaimed(address indexed from, address indexed addr, uint amount, uint time);
+    event RemainingTokensClaimed(address indexed from, uint amount, uint time);
 
     error InvalidAddress();
     error NoTokensToClaim();
@@ -61,7 +61,7 @@ contract VestingContract is Ownable {
         scheduleIds[scheduleCount++] = addr;
         activeSchedules++;
 
-        emit ScheduleCreated(addr, block.timestamp);
+        emit ScheduleCreated(address(this),addr, block.timestamp);
     }
 
     function claimTokens() external {
@@ -77,7 +77,7 @@ contract VestingContract is Ownable {
         }
         require(token.transfer(msg.sender, claimable), TokenTransferFailed());
 
-        emit TokenClaimed(msg.sender, claimable);
+        emit TokenClaimed(address(this), msg.sender, claimable, block.timestamp);
     }
 
     function calculateVestedAmount(address _addr) internal view returns(uint){
@@ -97,7 +97,7 @@ contract VestingContract is Ownable {
         require(activeSchedules == 0, ActiveScheduleExists());
         uint remainingBalance = token.balanceOf(address(this));
         require(token.transfer(msg.sender, remainingBalance), TokenTransferFailed());
-        emit RemainingTokensClaimed(remainingBalance);
+        emit RemainingTokensClaimed(address(this), remainingBalance, block.timestamp);
     }
 
     function getAllSchedules() external view onlyOwner returns (VestingSchedule[] memory) {
