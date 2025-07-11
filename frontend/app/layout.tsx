@@ -2,46 +2,24 @@
 
 import { Navbar } from "@/app/components/layout/Navbar";
 import { Providers } from "@/app/utils/providers";
-import { ToastContainer } from "react-toastify";
 import { Toaster } from "react-hot-toast";
-import "react-toastify/dist/ReactToastify.css";
 import "@rainbow-me/rainbowkit/styles.css";
 import "./globals.css";
-import {ContractWrapper} from "@/app/contexts/ContractContext";
-
-interface NavbarProps {
-    isSidebarOpen: boolean;
-    onToggleSidebar: () => void;
-    walletAddress: string;
-    networkStatus: "connected" | "disconnected";
-}
-
-interface SidebarProps {
-    isOpen: boolean;
-    onClose: () => void;
-    walletAddress: string;
-}
+import { ContractWrapper } from "@/app/contexts/ContractContext";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-
     return (
         <html lang="en">
         <body>
-        <div className="bg-black text-white font-sans relative">
+        <div>
             <Providers>
-            <ContractWrapper>
-                        <div className="bg-gray-900 min-h-screen">
-                            <Navbar/>
-                            <main className={"transition-all duration-300 ease-in-out ml-0"}>
-                                <div className="mt-12 p-4 md:p-8">{children}</div>
-                            </main>
-                        </div>
-
-                    <ToastContainer
-                        limit={1}
-                        position="top-right"
-                        className="toastContainer"
-                    />
+                <ContractWrapper>
+                    <div className="bg-gray-900 h-full flex flex-col">
+                        <Navbar />
+                        <main className="transition-all duration-300 ease-in-out ml-0 flex-1 overflow-auto">
+                            <div className="mt-16 p-4 md:p-4">{children}</div>
+                        </main>
+                    </div>
                     <Toaster
                         position="top-right"
                         toastOptions={{
@@ -73,8 +51,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             },
                         }}
                     />
-            </ContractWrapper>
-        </Providers>
+                </ContractWrapper>
+            </Providers>
         </div>
         </body>
         </html>
