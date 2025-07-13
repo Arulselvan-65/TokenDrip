@@ -13,7 +13,7 @@ export default function TokenClaimingLanding() {
     claimed: 0,
     remainingDays: 0
   });
-  const { vestingContractInstance, signer, isLoading} = useContractContext();
+  const { vestingContractInstance, signer, isLoading, provider} = useContractContext();
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
   const { address, isConnected } = useAccount();
 
@@ -27,7 +27,7 @@ export default function TokenClaimingLanding() {
         const endTimestamp = Number(schedule[3]);
         const now = Math.floor(Date.now() / 1000);
         const differenceSeconds = Number(endTimestamp) - now;
-        const remainingDays = Math.max(0, Math.ceil(differenceSeconds / (24 * 60 * 60))) - 1;
+        const remainingDays = Math.max(0, Math.ceil(differenceSeconds / (24 * 60 * 60)));
         setDashValues({
           totalTokens: Number(schedule[1]),
           claimed: Number(schedule[4]),
@@ -43,46 +43,59 @@ export default function TokenClaimingLanding() {
 
   useEffect(() => {
     const calculateTimeLeft = async () => {
-      const lastClaimData = localStorage.getItem("claimDataList");
-      if (!lastClaimData) {
+      if (isLoading || !vestingContractInstance) {
         setTimeLeft(null);
         return;
       }
 
-      const currentAddress = address;
-      const claimDataList = JSON.parse(lastClaimData || "[]");
-      const latestClaim = claimDataList.find((item) => item.addr.toLowerCase() === currentAddress.toLowerCase());
-      if (!latestClaim) {
+      const latestBlock = await provider.getBlockNumber();
+      const startBlock = 23869354;
+      const tokenClaimedFilter = vestingContractInstance.filters.TokenClaimed(vestingContractInstance.target, address);
+
+      const tokenClaimedEvents = await vestingContractInstance.queryFilter(tokenClaimedFilter, startBlock, latestBlock);
+      if (tokenClaimedEvents.length === 0) {
         setTimeLeft(null);
         return;
       }
 
-      const { timestamp, addr } = latestClaim;
-      if (!currentAddress || addr.toLowerCase() !== currentAddress.toLowerCase()) {
-        setTimeLeft(null);
-        return;
-      }
+      const latestClaimEvent = tokenClaimedEvents.sort((a, b) => b.blockNumber - a.blockNumber || b.transactionIndex - a.transactionIndex)[0];
+      const block = await provider.getBlock(latestClaimEvent.blockNumber);
+      const lastClaimTimestamp = block.timestamp * 1000;
 
-      const lastClaim = parseInt(timestamp, 10);
-      const nextClaimTime = lastClaim + 24 * 60 * 60 * 1000;
+      const nextClaimTime = lastClaimTimestamp + 24 * 60 * 60 * 1000;
       const now = Date.now();
       const difference = nextClaimTime - now;
-      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24)
-          .toString()
-          .padStart(2, "0");
-      const minutes = Math.floor((difference / (1000 * 60)) % 60)
-          .toString()
-          .padStart(2, "0");
-      const seconds = Math.floor((difference / 1000) % 60)
-          .toString()
-          .padStart(2, "0");
+
+      if (difference <= 0) {
+        setTimeLeft(null);
+        return;
+      }
+
+      const hours = Math.floor((difference / (1000 * 60 * 60)) % 24).toString().padStart(2, "0");
+      const minutes = Math.floor((difference / (1000 * 60)) % 60).toString().padStart(2, "0");
+      const seconds = Math.floor((difference / 1000) % 60).toString().padStart(2, "0");
       setTimeLeft(`${hours}:${minutes}:${seconds}`);
     };
-
-    const timer = setInterval(calculateTimeLeft, 1000);
     calculateTimeLeft();
+  }, [address, isLoading, vestingContractInstance, provider]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (timeLeft) {
+        const [hours, minutes, seconds] = timeLeft.split(":").map(Number);
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds - 1;
+        if (totalSeconds <= 0) {
+          setTimeLeft(null);
+        } else {
+          const newHours = Math.floor(totalSeconds / 3600).toString().padStart(2, "0");
+          const newMinutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, "0");
+          const newSeconds = (totalSeconds % 60).toString().padStart(2, "0");
+          setTimeLeft(`${newHours}:${newMinutes}:${newSeconds}`);
+        }
+      }
+    }, 1000);
     return () => clearInterval(timer);
-  }, [address]);
+  }, [timeLeft]);
 
   const handleClaimTokens = async () => {
     let res = await claimTokens(signer, vestingContractInstance, address);

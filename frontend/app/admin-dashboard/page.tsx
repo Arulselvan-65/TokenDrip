@@ -58,7 +58,7 @@ export default function DashboardPage() {
     async function fetchLatestFourEvents(vestingContract: ethers.Contract, provider: ethers.BrowserProvider) {
         try {
             const latestBlock = await provider.getBlockNumber();
-            const startBlock = 0;
+            const startBlock = 23869354;
 
             const scheduleCreatedFilter = vestingContract.filters.ScheduleCreated(vestingContract.address);
             const tokenClaimedFilter = vestingContract.filters.TokenClaimed(vestingContract.address);

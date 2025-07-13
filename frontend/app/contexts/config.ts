@@ -1,2 +1,2 @@
-export const tokenContractAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
-export const vestingContractAddress = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+export const tokenContractAddress = '0xE885DCe7f627B5D35505521119dB686ac3Dc0559';
+export const vestingContractAddress = '0x11581696b01DEE6c77F9b29dA912aaeba16C033E';

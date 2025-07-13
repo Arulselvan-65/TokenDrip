@@ -23,14 +23,10 @@ export const createSchedule = async (owner, vestingContractInstance, _address, _
     return false;
 };
 
-export const claimTokens = async (owner, vestingContractInstance, addr ) => {
+    export const claimTokens = async (owner, vestingContractInstance, addr ) => {
     try {
-        //await vestingContractInstance.connect(owner).claimTokens();
-
-        let timestamp = new Date().getTime();
-        const claimDataList = JSON.parse(localStorage.getItem("claimDataList") || "[]");
-        claimDataList.push({ timestamp, addr });
-        localStorage.setItem("claimDataList", JSON.stringify(claimDataList));
+        console.log("Came Address", owner);
+        await vestingContractInstance.connect(owner).claimTokens();
         toast.success("Tokens claimed successfully.");
         return true;
     } catch (e) {
