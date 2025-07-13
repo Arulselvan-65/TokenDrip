@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import React, { createContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useState, ReactNode, useEffect, useContext } from "react";
 import { ethers } from "ethers";
 import { useAccount } from "wagmi";
 import { toast } from "react-toastify";
@@ -38,7 +38,7 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
             setIsLoading(true);
             try {
                 if (isConnected && connector) {
-                    const provider = new ethers.BrowserProvider(window.ethereum);
+                    const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
                     const walletSigner = await provider.getSigner();
                     const token = new ethers.Contract(tokenContractAddress, tokenAbi, walletSigner);
                     const vesting = new ethers.Contract(vestingContractAddress, abi, walletSigner);
@@ -75,7 +75,7 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
 };
 
 export const useContractContext = () => {
-    const context = React.useContext(ContractContext);
+    const context = useContext(ContractContext);
     if (!context) {
         throw new Error("useContractContext must be used within a ContractWrapper");
     }

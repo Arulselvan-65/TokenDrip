@@ -1,19 +1,15 @@
 //@ts-nocheck
-import { ethers } from "ethers";
-import { tokenContractAddress, vestingContractAddress } from "@/app/contexts/config";
-import { tokenAbi } from "@/app/utils/contracts/abi/TokenContract";
-import { abi } from "@/app/utils/contracts/abi/VestingContract";
 
-export const getTotalSupply = async (tokenContractInstance: ethers.Contract, vestingContractInstance: ethers.Contract) => {
+import { toast } from "react-toastify";
+import { decodeCustomError } from "@/utils/errors/errors";
+
+export const createSchedule = async (owner, vestingContractInstance, _address, _totalDays, _totalTokens) => {
     try {
-        const [totalSupply] = await tokenContractInstance.totalSupply();
-
-        const value = totalSupply/10n**18n
-
-
-        return value;
-    } catch (error) {
-        console.error("Error fetching total supply:", error);
-        throw error;
+        console.log("Came");
+        await vestingContractInstance.createSchedule(_address, _totalDays, _totalTokens);
+        toast.success("Schedule created successfully.");
+    } catch (e) {
+        console.error("EEEEEEEEEEEEEEEEE" , e);
+        toast.error("Failed to create schedule");
     }
 };

@@ -1,18 +1,44 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConnectButtonC } from '../ConnectButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../ui/dialog';
+import { createSchedule } from "@/app/utils/contracts/interactions";
+import {useContractContext} from "@/app/contexts/ContractContext";
+import {useAccount} from "wagmi";
 
 export const Navbar = () => {
 
    const [userAddress, setUserAddress] = useState("");
+   const [isOwner, setIsOwner] = useState(false);
    const [totalDays, setTotalDays] = useState("");
    const [totalTokens, setTotalTokens] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+   const [isDialogOpen, setIsDialogOpen] = useState(false);
+   const { address, isConnected } = useAccount();
+   const { vestingContractInstance, isLoading } = useContractContext();
 
-  const createSchedule = async () => {
+   useEffect(() => {
+     const init = async () => {
+       if (!isConnected || isLoading || !vestingContractInstance) {
+         return;
+       }
+       try {
+         const ow = await vestingContractInstance.owner();
+         if(ow == address)
+           setIsOwner(true);
+       }catch (error) {
+            setIsOwner(false);}
+     }
+     init();
+   }, [isConnected, isLoading, vestingContractInstance])
 
+
+
+  const create = async () => {
+       console.log("Create new schedule");
+      if(userAddress != "" && totalDays != "" && totalTokens != "")
+          console.log("Creating new schedule");
+       console.log(await createSchedule(address, vestingContractInstance, userAddress, totalDays, totalTokens));
   }
 
   return (
@@ -24,11 +50,11 @@ export const Navbar = () => {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          {isOwner ? (
           <div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <button
-                    onClick={createSchedule}
                     type="button"
                     className="inline-flex items-center px-3 py-1.5 rounded-lg text-md font-medium bg-emerald-900/20 text-emerald-400 border border-emerald-800 gap-2"
                 >
@@ -46,6 +72,7 @@ export const Navbar = () => {
                       <input
                           type="text"
                           value={userAddress}
+                          required={true}
                           onChange={(e) => setUserAddress(e.target.value)}
                           className="w-full px-2 py-2 rounded-xl bg-gray-700 border border-gray-600 text-white focus:outline-none"
                           placeholder="0.00"
@@ -56,6 +83,7 @@ export const Navbar = () => {
                       <input
                           type="text"
                           value={totalDays}
+                          required={true}
                           onChange={(e) => setTotalDays(e.target.value)}
                           className="w-full px-2 py-2 rounded-xl bg-gray-700 border border-gray-600 text-white focus:outline-none"
                           placeholder="0"
@@ -66,6 +94,7 @@ export const Navbar = () => {
                       <input
                           type="text"
                           value={totalTokens}
+                          required={true}
                           onChange={(e) => setTotalTokens(e.target.value)}
                           className="w-full px-2 py-2 rounded-xl bg-gray-700 border border-gray-600 text-white focus:outline-none"
                           placeholder="0"
@@ -75,9 +104,8 @@ export const Navbar = () => {
                 </div>
                 <DialogFooter>
                   <button
-                     // onClick={handlePayment}
+                      onClick={create}
                       className="w-full sm:w-auto px-6 py-2 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                     // disabled={!paymentAmount}
                   >
                     Create
                   </button>
@@ -85,6 +113,7 @@ export const Navbar = () => {
               </DialogContent>
             </Dialog>
           </div>
+          ) : ''}
           <div className="hidden sm:block">
             <ConnectButtonC/>
           </div>

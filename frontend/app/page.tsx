@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const [scheduleList, setScheduleList] = useState<Schedule[]>([]);
   const [latestEvents, setLatestEvents] = useState([]);
   const { isConnected } = useAccount();
-  const { tokenContractInstance, vestingContractInstance, signer, provider, isLoading } = useContractContext();
+  const { tokenContractInstance, vestingContractInstance, owner, signer, provider, isLoading } = useContractContext();
 
   useEffect(() => {
     const fetchDashboardData = async () => {

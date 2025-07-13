@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast";
 import "@rainbow-me/rainbowkit/styles.css";
 import "./globals.css";
 import { ContractWrapper } from "@/app/contexts/ContractContext";
+import {ToastContainer} from "react-toastify";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -20,14 +21,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <div className="mt-16 p-4 md:p-4">{children}</div>
                         </main>
                     </div>
+
+                    <ToastContainer
+                        limit={3}
+                        position="top-right"
+                        className="toastContainer"
+                    />
+
                     <Toaster
                         position="top-right"
                         toastOptions={{
-                            duration: 1000,
+                            duration: 3000,
                             style: {
                                 background: "#1f2937",
                                 color: "#fff",
                                 border: "1px solid rgba(139, 92, 246, 0.1)",
+                                zIndex: 9999, // Ensure it stays on top
                             },
                             success: {
                                 style: {
