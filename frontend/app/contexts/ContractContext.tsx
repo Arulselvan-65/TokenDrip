@@ -27,7 +27,6 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
     const [vestingContractInstance, setVestingContractInstance] = useState<ethers.Contract | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const [triggerUpdate, setTriggerUpdate] = useState(false);
-
     const { connector, isConnected } = useAccount();
 
     useEffect(() => {
