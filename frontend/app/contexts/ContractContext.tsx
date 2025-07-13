@@ -15,6 +15,7 @@ interface ContractContextType {
     tokenContractInstance: ethers.Contract | undefined;
     vestingContractInstance: ethers.Contract | undefined;
     isLoading: boolean;
+    setTriggerUpdate: boolean;
 }
 
 export const ContractContext = createContext<ContractContextType | undefined>(undefined);
@@ -25,6 +26,7 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
     const [tokenContractInstance, setTokenContractInstance] = useState<ethers.Contract | undefined>(undefined);
     const [vestingContractInstance, setVestingContractInstance] = useState<ethers.Contract | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
+    const [triggerUpdate, setTriggerUpdate] = useState(false);
 
     const { connector, isConnected } = useAccount();
 
@@ -32,13 +34,19 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
         const initContract = async () => {
             if (!isConnected) {
                 setIsLoading(false);
-                toast.error("Connect Wallet to continue");
+                const toastId = 'connect-wallet';
+                if (!toast.isActive(toastId)) {
+                    toast.error("Please connect your wallet to proceed", {
+                        toastId: toastId,
+                        autoClose: 1000,
+                    });
+                }
                 return;
             }
             setIsLoading(true);
             try {
                 if (isConnected && connector) {
-                    const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
+                    const provider = new ethers.BrowserProvider(window.ethereum);
                     const walletSigner = await provider.getSigner();
                     const token = new ethers.Contract(tokenContractAddress, tokenAbi, walletSigner);
                     const vesting = new ethers.Contract(vestingContractAddress, abi, walletSigner);
@@ -57,7 +65,7 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
         };
 
         initContract();
-    }, [isConnected, connector]);
+    }, [isConnected, connector, triggerUpdate]);
 
     return (
         <ContractContext.Provider
@@ -67,6 +75,7 @@ export const ContractWrapper = ({ children }: { children: ReactNode }) => {
                 tokenContractInstance,
                 vestingContractInstance,
                 isLoading,
+                setTriggerUpdate
             }}
         >
             {children}
