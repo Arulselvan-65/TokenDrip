@@ -11,6 +11,7 @@ contract VestingContract is Ownable {
     IERC20 public token;
     uint public activeSchedules;
     uint public scheduleCount;
+    uint constant ONE_TOKEN = 10e18;
 
     constructor(address tokenAddress) Ownable(msg.sender){
         token = IERC20(tokenAddress);
@@ -64,33 +65,33 @@ contract VestingContract is Ownable {
         emit ScheduleCreated(address(this),addr, block.timestamp);
     }
 
-    function claimTokens() external {
-        require(vestingSchedules[msg.sender].isActive, NoActiveSchedule());
-        require(vestingSchedules[msg.sender].endTime >= block.timestamp, ScheduleCompleted());
+    function claimTokens(uint16 claimable) external {
         VestingSchedule storage vestingSchedule = vestingSchedules[msg.sender];
-        uint claimable = calculateVestedAmount(msg.sender) - vestingSchedule.claimed;
+        require(vestingSchedule.isActive, NoActiveSchedule());
+        require(vestingSchedule.endTime >= block.timestamp, ScheduleCompleted());
+
         require(claimable > 0, NoTokensToClaim());
-        vestingSchedule.claimed += claimable;
+        unchecked { vestingSchedule.claimed += claimable; }
         if(vestingSchedule.claimed == vestingSchedule.totalTokens){
             activeSchedules--;
             vestingSchedule.isActive = false;
         }
-        require(token.transfer(msg.sender, claimable * (10**18)), TokenTransferFailed());
+        token.safeTransfer(msg.sender, claimable * ONE_TOKEN);
 
-        emit TokenClaimed(address(this), msg.sender, claimable * (10**18), block.timestamp);
+        emit TokenClaimed(msg.sender, claimable * ONE_TOKEN, block.timestamp);
     }
 
-    function calculateVestedAmount(address _addr) internal view returns(uint){
-        require(vestingSchedules[_addr].isActive, NoActiveSchedule());
-        VestingSchedule memory vestingSchedule = vestingSchedules[_addr];
-        uint elapsedDays = (block.timestamp - vestingSchedule.startTime) / 1 days;
-        if(elapsedDays >= vestingSchedule.totalDays){
-            return vestingSchedule.totalTokens;
-        }
-        uint vestedAmount = (vestingSchedule.totalTokens * (elapsedDays + 1)) / vestingSchedule.totalDays;
-
-        return vestedAmount > vestingSchedule.totalTokens ? vestingSchedule.totalTokens : vestedAmount;
-    }
+//    function calculateVestedAmount(address _addr) internal view returns(uint){
+//        require(vestingSchedules[_addr].isActive, NoActiveSchedule());
+//        VestingSchedule memory vestingSchedule = vestingSchedules[_addr];
+//        uint elapsedDays = (block.timestamp - vestingSchedule.startTime) / 1 days;
+//        if(elapsedDays >= vestingSchedule.totalDays){
+//            return vestingSchedule.totalTokens;
+//        }
+//        uint vestedAmount = (vestingSchedule.totalTokens * (elapsedDays + 1)) / vestingSchedule.totalDays;
+//
+//        return vestedAmount > vestingSchedule.totalTokens ? vestingSchedule.totalTokens : vestedAmount;
+//    }
 
     function claimRemainTokens() external onlyOwner {
         require(token.balanceOf(address(this)) > 0, NoTokensToClaim());
